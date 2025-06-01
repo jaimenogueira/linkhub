@@ -1,15 +1,10 @@
+
 import Link from 'next/link';
 import { getAuthStatus } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut, Settings2 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { LogIn } from 'lucide-react'; // Removido LogOut, Settings2 que não estavam sendo usados aqui. PlusCircle movido para o novo componente.
 import { LogoutButton } from '../auth/LogoutButton';
-
+import { AddLinkButtonWithModal } from './AddLinkButtonWithModal'; // Novo componente
 
 export default async function AppHeader() {
   const { isAuthenticated, username } = await getAuthStatus();
@@ -20,12 +15,13 @@ export default async function AppHeader() {
         <Link href="/" className="text-2xl font-headline font-bold text-primary">
           LinkHub
         </Link>
-        <nav>
+        <nav className="flex items-center gap-4">
+          <AddLinkButtonWithModal isAuthenticated={isAuthenticated} />
           {isAuthenticated ? (
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">Welcome, {username}</span>
+            <>
+              <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {username}</span>
               <LogoutButton />
-            </div>
+            </>
           ) : (
             <Button asChild variant="ghost">
               <Link href="/login">
