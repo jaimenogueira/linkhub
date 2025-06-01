@@ -1,3 +1,4 @@
+
 'use server';
 
 import { redirect } from 'next/navigation';
@@ -6,30 +7,45 @@ import { z } from 'zod';
 import { getUsers, addLinkEntry, saveUploadedFile, getLinks as fetchLinksFs } from './fs-utils';
 import { createSession, getSession, clearSession } from './auth';
 import type { LinkEntry } from './constants';
-import { LINKS_FILE_PATH, USERS_FILE_PATH, PUBLIC_IMAGES_PATH, PUBLIC_DATA_PATH } from './constants';
+import { LINKS_FILE_PATH, USERS_FILE_PATH, PUBLIC_IMAGES_PATH } from './constants';
 import fs from 'fs/promises';
 import path from 'path';
 
-// Ensure essential directories and files exist on startup or first action
+// Ensures essential directories and files exist on startup or first action
 async function initializeDataFiles() {
-  try {
-    await fs.mkdir(path.dirname(USERS_FILE_PATH), { recursive: true });
-    await fs.stat(USERS_FILE_PATH);
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
-      await fs.writeFile(USERS_FILE_PATH, 'admin:admin123\n'); // Default user
+  const ensureFileExistsWithDefaultContent = async (filePath: string, defaultContent: string) => {
+    try {
+      await fs.access(filePath);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
+        await fs.writeFile(filePath, defaultContent);
+      } else {
+        // For errors other than file not found, rethrow to indicate a more serious issue.
+        throw e;
+      }
     }
-  }
+  };
 
   try {
+    // Ensure all necessary directories exist first.
+    // fs.mkdir with recursive: true will not throw an error if the directory already exists.
+    await fs.mkdir(path.dirname(USERS_FILE_PATH), { recursive: true });
     await fs.mkdir(path.dirname(LINKS_FILE_PATH), { recursive: true });
-    await fs.stat(LINKS_FILE_PATH);
-  } catch (e) {
-     if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
-      await fs.writeFile(LINKS_FILE_PATH, ''); // Empty links file
-    }
+    await fs.mkdir(PUBLIC_IMAGES_PATH, { recursive: true });
+
+    // Ensure critical files exist, creating them with default content if they don't.
+    await ensureFileExistsWithDefaultContent(USERS_FILE_PATH, 'admin:admin123\n');
+    await ensureFileExistsWithDefaultContent(LINKS_FILE_PATH, ''); // Empty links file
+
+  } catch (error) {
+    // If a critical error occurs during initialization (e.g., permission issues not allowing directory/file creation),
+    // log it to the server console. This might prevent the app from functioning correctly.
+    // Note: console.error will only be visible in server logs, not to the end-user.
+    console.error("Critical error during application data file/directory initialization:", error);
+    // Depending on the severity and application requirements, you might rethrow the error
+    // or implement more sophisticated error handling or startup prevention.
+    // For this context, we log and allow the application to continue attempting to run.
   }
-  await fs.mkdir(PUBLIC_IMAGES_PATH, { recursive: true });
 }
 
 initializeDataFiles();
@@ -112,3 +128,4 @@ export async function getAuthStatus(): Promise<{ isAuthenticated: boolean; usern
   }
   return { isAuthenticated: false };
 }
+
