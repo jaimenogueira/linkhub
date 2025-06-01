@@ -1,0 +1,2 @@
+Card Clash | http://10.0.2.145:3000 | /images/1748817578434-card.png
+Mario Memory | http://10.0.2.145:3001 | /images/1748817745358-mario.jpg

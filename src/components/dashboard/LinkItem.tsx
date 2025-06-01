@@ -1,3 +1,4 @@
+
 import type { LinkEntry } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
@@ -13,7 +14,7 @@ export function LinkItem({ link }: LinkItemProps) {
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out group">
-      <Link href={isValidUrl ? link.url : '#'} target="_blank" rel="noopener noreferrer" passHref legacyBehavior={!isValidUrl}>
+      <Link href={isValidUrl ? link.url : '#'} target="_blank" rel="noopener noreferrer" passHref legacyBehavior>
         <a className={`flex flex-col items-center p-4 text-center h-full ${!isValidUrl ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
           <CardHeader className="p-2">
             <div className="relative w-20 h-20 mb-3 rounded-lg overflow-hidden shadow-md mx-auto">
