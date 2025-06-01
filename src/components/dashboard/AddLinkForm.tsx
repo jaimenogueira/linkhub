@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -20,9 +21,9 @@ const AddLinkSchema = z.object({
   name: z.string().min(1, "Application name is required"),
   url: z.string().url("Invalid URL format. Please include http:// or https://"),
   icon: z.instanceof(File)
-    .refine(file => file.size > 0, "Icon is required")
     .refine(file => file.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
-    .refine(file => ACCEPTED_IMAGE_TYPES.includes(file.type), ".jpg, .jpeg, .png, .svg and .gif files are accepted."),
+    .refine(file => ACCEPTED_IMAGE_TYPES.includes(file.type), ".jpg, .jpeg, .png, .svg and .gif files are accepted.")
+    .optional(), // Icon is optional. If provided, it's validated.
 });
 
 type AddLinkFormValues = z.infer<typeof AddLinkSchema>;
@@ -39,22 +40,25 @@ export function AddLinkForm({ onSuccess }: AddLinkFormProps) {
 
   const form = useForm<AddLinkFormValues>({
     resolver: zodResolver(AddLinkSchema),
+    defaultValues: {
+      name: '',
+      url: '',
+      icon: undefined, // Default to undefined for optional file
+    }
   });
 
   const handleIconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (file) { // A file is selected
       form.setValue('icon', file, { shouldValidate: true });
       const reader = new FileReader();
       reader.onloadend = () => {
         setIconPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-    } else {
+    } else { // No file selected or selection cleared
       setIconPreview(null);
-      // Use an empty File object or handle appropriately if no file is selected
-      // For Zod, it will fail validation if file.size is not > 0
-      form.setValue('icon', new File([], ""), { shouldValidate: true });
+      form.setValue('icon', undefined, { shouldValidate: true }); // Explicitly set to undefined
     }
   };
 
@@ -64,7 +68,10 @@ export function AddLinkForm({ onSuccess }: AddLinkFormProps) {
       const formData = new FormData();
       formData.append('name', data.name);
       formData.append('url', data.url);
-      formData.append('icon', data.icon);
+      
+      if (data.icon) { // Only append icon if it's present (File object)
+        formData.append('icon', data.icon);
+      }
       
       const result = await addLink(formData);
       if (result?.error) {
@@ -79,7 +86,7 @@ export function AddLinkForm({ onSuccess }: AddLinkFormProps) {
           title: "Link Added",
           description: result.success,
         });
-        form.reset();
+        form.reset(); // Resets to defaultValues, so icon will be undefined
         setIconPreview(null);
         if (onSuccess) onSuccess();
       }
@@ -106,8 +113,18 @@ export function AddLinkForm({ onSuccess }: AddLinkFormProps) {
         {form.formState.errors.url && <p className="text-sm text-destructive">{form.formState.errors.url.message}</p>}
       </div>
       <div>
-        <Label htmlFor="icon">Icon/Image</Label>
-        <Input id="icon" type="file" accept={ACCEPTED_IMAGE_TYPES.join(",")} onChange={handleIconChange} className={form.formState.errors.icon ? 'border-destructive' : ''} />
+        <Label htmlFor="icon">Icon/Image (Optional)</Label>
+        <Input 
+          id="icon" 
+          type="file" 
+          accept={ACCEPTED_IMAGE_TYPES.join(",")} 
+          onChange={handleIconChange} // Using onChange to manage form.setValue
+          className={form.formState.errors.icon ? 'border-destructive' : ''} 
+        />
+        {/* 
+          We don't use form.register('icon') directly here because file inputs are tricky with react-hook-form's default register.
+          onChange gives more control. Zod validation will still run on the 'icon' field value.
+        */}
         {form.formState.errors.icon && <p className="text-sm text-destructive">{(form.formState.errors.icon as any).message}</p>}
         {iconPreview && (
           <div className="mt-2 relative w-24 h-24 border rounded-md overflow-hidden">
