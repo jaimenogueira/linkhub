@@ -1,7 +1,9 @@
+
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
 import type { LinkEntry } from './constants';
+import { USERS_FILE_PATH, LINKS_FILE_PATH, PUBLIC_IMAGES_PATH, PUBLIC_DATA_PATH } from './constants';
 
 export function ensureDirectoryExistence(filePath: string): void {
   const dirname = path.dirname(filePath);
@@ -13,15 +15,17 @@ export function ensureDirectoryExistence(filePath: string): void {
 }
 
 export async function getUsers(): Promise<Record<string, string>> {
+  const usersFilePath = USERS_FILE_PATH;
   try {
-    await fs.stat(path.dirname(process.env.USERS_FILE_PATH || './data/users.txt')); // Check if directory exists
+    // Check if the directory exists. fs.stat will throw if path doesn't exist.
+    await fs.stat(path.dirname(usersFilePath));
   } catch (error) {
-     // Ensure directory exists or handle error appropriately
-    ensureDirectoryExistence(process.env.USERS_FILE_PATH || './data/users.txt');
+     // If directory doesn't exist, ensureDirectoryExistence will create it.
+    ensureDirectoryExistence(usersFilePath);
   }
   
   try {
-    const data = await fs.readFile(process.env.USERS_FILE_PATH || './data/users.txt', 'utf-8');
+    const data = await fs.readFile(usersFilePath, 'utf-8');
     const users: Record<string, string> = {};
     data.split('\n').forEach(line => {
       if (line.trim()) {
@@ -33,12 +37,12 @@ export async function getUsers(): Promise<Record<string, string>> {
     });
     return users;
   } catch (error) {
-    // If file doesn't exist or other error, return empty users object or handle appropriately
-    // For this app, we expect users.txt to be provisioned.
-    // Create a default user if file doesn't exist for easier setup
+    // If file doesn't exist or other error
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        ensureDirectoryExistence(process.env.USERS_FILE_PATH || './data/users.txt');
-        await fs.writeFile(process.env.USERS_FILE_PATH || './data/users.txt', 'admin:admin123\n');
+        // ensureDirectoryExistence ensures the directory for usersFilePath exists
+        ensureDirectoryExistence(usersFilePath);
+        // Create a default user if file doesn't exist for easier setup
+        await fs.writeFile(usersFilePath, 'admin:admin123\n');
         return { admin: 'admin123' };
     }
     console.error('Error reading users file:', error);
@@ -47,14 +51,15 @@ export async function getUsers(): Promise<Record<string, string>> {
 }
 
 export async function getLinks(): Promise<LinkEntry[]> {
+  const linksFilePath = LINKS_FILE_PATH;
   try {
-    await fs.stat(path.dirname(process.env.LINKS_FILE_PATH || './public/data/links.txt'));
+    await fs.stat(path.dirname(linksFilePath));
   } catch (error) {
-    ensureDirectoryExistence(process.env.LINKS_FILE_PATH || './public/data/links.txt');
+    ensureDirectoryExistence(linksFilePath);
   }
 
   try {
-    const data = await fs.readFile(process.env.LINKS_FILE_PATH || './public/data/links.txt', 'utf-8');
+    const data = await fs.readFile(linksFilePath, 'utf-8');
     return data.split('\n')
       .filter(line => line.trim() !== '')
       .map((line, index) => {
@@ -67,7 +72,8 @@ export async function getLinks(): Promise<LinkEntry[]> {
       });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      // If file doesn't exist, return empty array
+      // If file doesn't exist, return empty array.
+      // The initializeDataFiles in actions.ts should handle creating it initially.
       return [];
     }
     console.error('Error reading links file:', error);
@@ -76,14 +82,18 @@ export async function getLinks(): Promise<LinkEntry[]> {
 }
 
 export async function addLinkEntry(name: string, url: string, iconPath: string): Promise<void> {
+  const linksFilePath = LINKS_FILE_PATH;
   const newLine = `${name} | ${url} | ${iconPath}\n`;
-  ensureDirectoryExistence(process.env.LINKS_FILE_PATH || './public/data/links.txt');
-  await fs.appendFile(process.env.LINKS_FILE_PATH || './public/data/links.txt', newLine);
+  ensureDirectoryExistence(linksFilePath);
+  await fs.appendFile(linksFilePath, newLine);
 }
 
 export async function saveUploadedFile(file: File, fileName: string): Promise<string> {
-  ensureDirectoryExistence(process.env.PUBLIC_IMAGES_PATH || './public/images/');
-  const filePath = path.join(process.env.PUBLIC_IMAGES_PATH || './public/images/', fileName);
+  const publicImagesPath = PUBLIC_IMAGES_PATH;
+  // Ensure the target directory exists
+  await fs.mkdir(publicImagesPath, { recursive: true });
+  
+  const filePath = path.join(publicImagesPath, fileName);
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
   await fs.writeFile(filePath, buffer);
