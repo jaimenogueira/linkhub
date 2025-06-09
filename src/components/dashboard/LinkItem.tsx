@@ -48,7 +48,20 @@ export function LinkItem({ link, isAuthenticated, onLinkDeleted }: LinkItemProps
     });
   };
 
-  const imageSrc = (link.iconPath && link.iconPath.trim() !== '') ? link.iconPath : "https://placehold.co/80x80.png";
+  let imageSrcForRender = "https://placehold.co/80x80.png";
+  let isImageUnoptimized = link.iconPath?.endsWith('.svg'); // SVGs are always unoptimized
+
+  if (link.iconPath && link.iconPath.trim() !== '' && !link.iconPath.startsWith('https://placehold.co')) {
+    if (link.iconPath.startsWith('/images/')) {
+      // It's a local, managed image. Apply cache-busting.
+      imageSrcForRender = `${link.iconPath}?v=${new Date().getTime()}`;
+      isImageUnoptimized = true; // Force unoptimized if we're cache-busting local images
+    } else {
+      // It might be an external URL, use as is.
+      imageSrcForRender = link.iconPath;
+    }
+  }
+  
   const altText = `${link.name || 'Link'} icon`;
 
   return (
@@ -58,13 +71,13 @@ export function LinkItem({ link, isAuthenticated, onLinkDeleted }: LinkItemProps
           <CardHeader className="p-2">
             <div className="relative w-20 h-20 mb-3 rounded-lg overflow-hidden shadow-md mx-auto">
               <Image
-                src={imageSrc}
+                src={imageSrcForRender}
                 alt={altText}
                 layout="fill"
                 objectFit="cover"
                 className="group-hover:scale-110 transition-transform duration-300"
                 data-ai-hint="app logo"
-                unoptimized={link.iconPath?.endsWith('.svg')}
+                unoptimized={isImageUnoptimized}
               />
             </div>
           </CardHeader>
