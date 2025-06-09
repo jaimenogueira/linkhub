@@ -5,8 +5,8 @@ import type { LinkEntry } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowUpRight, Trash, Pencil, Loader2 } from 'lucide-react'; // Added Pencil, Loader2
-import { Button } from '@/components/ui/button'; // Added Button
+import { ArrowUpRight, Trash, Pencil, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,16 +17,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"; // Added AlertDialog components
-import { useState, useTransition } from 'react'; // Added useState, useTransition
-import { deleteLink } from '@/lib/actions'; // Added deleteLink
-import { useToast } from '@/hooks/use-toast'; // Added useToast
+} from "@/components/ui/alert-dialog";
+import { useState, useTransition } from 'react';
+import { deleteLink } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
 
 interface LinkItemProps {
   link: LinkEntry;
   isAuthenticated: boolean;
-  onLinkDeleted?: () => void; // Callback after successful deletion
-  // onLinkEdited?: () => void; // Placeholder for edit
+  onLinkDeleted?: () => void;
 }
 
 export function LinkItem({ link, isAuthenticated, onLinkDeleted }: LinkItemProps) {
@@ -34,7 +33,6 @@ export function LinkItem({ link, isAuthenticated, onLinkDeleted }: LinkItemProps
   const { toast } = useToast();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPendingDelete, startTransitionDelete] = useTransition();
-  // const [isEditDialogOpen, setIsEditDialogOpen] = useState(false); // For edit later
 
   const handleDelete = async () => {
     if (!link.id) return;
@@ -50,6 +48,9 @@ export function LinkItem({ link, isAuthenticated, onLinkDeleted }: LinkItemProps
     });
   };
 
+  const imageSrc = (link.iconPath && link.iconPath.trim() !== '') ? link.iconPath : "https://placehold.co/80x80.png";
+  const altText = `${link.name || 'Link'} icon`;
+
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out group relative">
       <Link href={isValidUrl ? link.url : '#'} target="_blank" rel="noopener noreferrer" passHref legacyBehavior>
@@ -57,8 +58,8 @@ export function LinkItem({ link, isAuthenticated, onLinkDeleted }: LinkItemProps
           <CardHeader className="p-2">
             <div className="relative w-20 h-20 mb-3 rounded-lg overflow-hidden shadow-md mx-auto">
               <Image
-                src={link.iconPath || "https://placehold.co/80x80.png"}
-                alt={`${link.name} icon`}
+                src={imageSrc}
+                alt={altText}
                 layout="fill"
                 objectFit="cover"
                 className="group-hover:scale-110 transition-transform duration-300"
